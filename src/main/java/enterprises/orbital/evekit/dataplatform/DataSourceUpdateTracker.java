@@ -42,7 +42,7 @@ import java.util.logging.Logger;
             unique = true),
         @Index(
             name = "finishedIndex",
-            columnList = "tid, sid, trackerEnd",
+            columnList = "tid, sid, dataSourceType, trackerEnd",
             unique = false)
     })
 @NamedQueries({
@@ -51,9 +51,15 @@ import java.util.logging.Logger;
         query = "SELECT c FROM DataSourceUpdateTracker c where c.source = :source and c.tid = :tid"),
     @NamedQuery(
         name = "DataSourceUpdateTracker.getUnfinished",
+        query = "SELECT c FROM DataSourceUpdateTracker c where c.source = :source and c.dataSourceType = :dtype and c.trackerEnd = -1"),
+    @NamedQuery(
+        name = "DataSourceUpdateTracker.getAllUnfinished",
         query = "SELECT c FROM DataSourceUpdateTracker c where c.source = :source and c.trackerEnd = -1"),
     @NamedQuery(
         name = "DataSourceUpdateTracker.getLatestFinished",
+        query = "SELECT c FROM DataSourceUpdateTracker c where c.source = :source and c.dataSourceType = :dtype and c.trackerEnd <> -1 order by c.trackerEnd desc"),
+    @NamedQuery(
+        name = "DataSourceUpdateTracker.getAllLatestFinished",
         query = "SELECT c FROM DataSourceUpdateTracker c where c.source = :source and c.trackerEnd <> -1 order by c.trackerEnd desc"),
 })
 @ApiModel(description = "EveKit Data Source Update Tracker")
@@ -198,12 +204,12 @@ public class DataSourceUpdateTracker {
         '}';
   }
 
-  public static DataSourceUpdateTracker createTracker(final DataSource source, final String type) {
+  public static DataSourceUpdateTracker createTracker(final DataSource source, final String dtype) {
     try {
       return DataPlatformProvider.getFactory().runTransaction(() -> {
         DataSourceUpdateTracker tracker = new DataSourceUpdateTracker();
         tracker.source = source;
-        tracker.dataSourceType = type;
+        tracker.dataSourceType = dtype;
         tracker.trackerStatus = UpdateStatus.NOT_STARTED;
         return DataPlatformProvider.getFactory().getEntityManager().merge(tracker);
       });
@@ -259,12 +265,13 @@ public class DataSourceUpdateTracker {
     return null;
   }
 
-  public static DataSourceUpdateTracker getUnfinishedTracker(final DataSource source) {
+  public static DataSourceUpdateTracker getUnfinishedTracker(final DataSource source, final String dtype) {
     try {
       return DataPlatformProvider.getFactory().runTransaction(() -> {
         TypedQuery<DataSourceUpdateTracker> getter = DataPlatformProvider.getFactory().getEntityManager().createNamedQuery(
             "DataSourceUpdateTracker.getUnfinished", DataSourceUpdateTracker.class);
         getter.setParameter("source", source);
+        getter.setParameter("dtype", dtype);
         try {
           return getter.getSingleResult();
         } catch (NoResultException e) {
@@ -277,18 +284,47 @@ public class DataSourceUpdateTracker {
     return null;
   }
 
-  public static DataSourceUpdateTracker getLatestFinishedTracker(final DataSource source) {
+  public static List<DataSourceUpdateTracker> getAllUnfinishedTracker(final DataSource source) {
+    try {
+      return DataPlatformProvider.getFactory().runTransaction(() -> {
+        TypedQuery<DataSourceUpdateTracker> getter = DataPlatformProvider.getFactory().getEntityManager().createNamedQuery(
+            "DataSourceUpdateTracker.getAllUnfinished", DataSourceUpdateTracker.class);
+        getter.setParameter("source", source);
+        return getter.getResultList();
+      });
+    } catch (Exception e) {
+      log.log(Level.SEVERE, "query error", e);
+    }
+    return null;
+  }
+
+  public static DataSourceUpdateTracker getLatestFinishedTrackers(final DataSource source, final String dtype) {
     try {
       return DataPlatformProvider.getFactory().runTransaction(() -> {
         TypedQuery<DataSourceUpdateTracker> getter = DataPlatformProvider.getFactory().getEntityManager().createNamedQuery(
             "DataSourceUpdateTracker.getLatestFinished", DataSourceUpdateTracker.class);
         getter.setParameter("source", source);
+        getter.setParameter("dtype", dtype);
         getter.setMaxResults(1);
         try {
           return getter.getSingleResult();
         } catch (NoResultException e) {
           return null;
         }
+      });
+    } catch (Exception e) {
+      log.log(Level.SEVERE, "query error", e);
+    }
+    return null;
+  }
+
+  public static List<DataSourceUpdateTracker> getAllLatestFinishedTrackers(final DataSource source) {
+    try {
+      return DataPlatformProvider.getFactory().runTransaction(() -> {
+        TypedQuery<DataSourceUpdateTracker> getter = DataPlatformProvider.getFactory().getEntityManager().createNamedQuery(
+            "DataSourceUpdateTracker.getAllLatestFinished", DataSourceUpdateTracker.class);
+        getter.setParameter("source", source);
+        return getter.getResultList();
       });
     } catch (Exception e) {
       log.log(Level.SEVERE, "query error", e);

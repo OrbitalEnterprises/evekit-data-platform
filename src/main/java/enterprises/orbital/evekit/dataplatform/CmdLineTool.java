@@ -5,6 +5,7 @@ import enterprises.orbital.evekit.account.ESITokenManager;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Command line tool for use by data sources which don't necessarily run in java.
@@ -30,8 +31,8 @@ public class CmdLineTool {
         "       ekdptool source -s <sid> disable\n" +
         "       ekdptool source -s <sid> show\n" +
         "       ekdptool tracker -s <sid> create <type>\n" +
-        "       ekdptool tracker -s <sid> unfinished\n" +
-        "       ekdptool tracker -s <sid> last\n" +
+        "       ekdptool tracker -s <sid> [-d <dtype>] unfinished\n" +
+        "       ekdptool tracker -s <sid> [-d <dtype>] last\n" +
         "       ekdptool tracker -s <sid> -t <tid> show\n" +
         "       ekdptool tracker -s <sid> -t <tid> start [<timestamp>]\n" +
         "       ekdptool tracker -s <sid> -t <tid> end [<timestamp>]\n" +
@@ -156,14 +157,38 @@ public class CmdLineTool {
         DataSourceUpdateTracker newTracker = DataSourceUpdateTracker.createTracker(source, typeInfo);
         if (newTracker == null) finish("Internal error creating new tracker", true, 1);
         finish(String.valueOf(newTracker.getTid()), false, 0);
+      } else if (argv[i].equals("-d")) {
+        // data source type included in query
+        i++;
+        if (!hasRequiredLength(1, i, argv)) usage();
+        String dType = argv[i++];
+        if (!hasRequiredLength(1, i, argv)) usage();
+        if (argv[i].equals("unfinished")) {
+          i++;
+          DataSourceUpdateTracker unfinished = DataSourceUpdateTracker.getUnfinishedTracker(source, dType);
+          if (unfinished != null) System.out.println(unfinished.toString());
+        } else if (argv[i].equals("last")) {
+          i++;
+          DataSourceUpdateTracker last = DataSourceUpdateTracker.getLatestFinishedTrackers(source, dType);
+          if (last != null) System.out.println(last.toString());
+        } else
+          usage();
       } else if (argv[i].equals("unfinished")) {
         i++;
-        DataSourceUpdateTracker unfinished = DataSourceUpdateTracker.getUnfinishedTracker(source);
-        if (unfinished != null) System.out.println(unfinished.toString());
+        List<DataSourceUpdateTracker> unfinished = DataSourceUpdateTracker.getAllUnfinishedTracker(source);
+        if (unfinished != null) {
+          for (DataSourceUpdateTracker next : unfinished) {
+            System.out.println(next.toString());
+          }
+        }
       } else if (argv[i].equals("last")) {
         i++;
-        DataSourceUpdateTracker last = DataSourceUpdateTracker.getLatestFinishedTracker(source);
-        if (last != null) System.out.println(last.toString());
+        List<DataSourceUpdateTracker> last = DataSourceUpdateTracker.getAllLatestFinishedTrackers(source);
+        if (last != null) {
+          for (DataSourceUpdateTracker next : last) {
+            System.out.println(next.toString());
+          }
+        }
       } else if (argv[i].equals("-t")) {
         i++;
         if (!hasRequiredLength(1, i, argv)) usage();
