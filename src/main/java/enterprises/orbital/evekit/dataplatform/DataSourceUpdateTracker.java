@@ -18,6 +18,7 @@ import javax.persistence.NoResultException;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.TypedQuery;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -59,8 +60,8 @@ import java.util.logging.Logger;
         name = "DataSourceUpdateTracker.getLatestFinished",
         query = "SELECT c FROM DataSourceUpdateTracker c where c.source = :source and c.dataSourceType = :dtype and c.trackerEnd <> -1 order by c.trackerEnd desc"),
     @NamedQuery(
-        name = "DataSourceUpdateTracker.getAllLatestFinished",
-        query = "SELECT c FROM DataSourceUpdateTracker c where c.source = :source and c.trackerEnd <> -1 order by c.trackerEnd desc"),
+        name = "DataSourceUpdateTracker.getAllTypes",
+        query = "SELECT DISTINCT c.dataSourceType FROM DataSourceUpdateTracker c where c.source = :source"),
 })
 @ApiModel(description = "EveKit Data Source Update Tracker")
 public class DataSourceUpdateTracker {
@@ -298,7 +299,7 @@ public class DataSourceUpdateTracker {
     return null;
   }
 
-  public static DataSourceUpdateTracker getLatestFinishedTrackers(final DataSource source, final String dtype) {
+  public static DataSourceUpdateTracker getLatestFinishedTracker(final DataSource source, final String dtype) {
     try {
       return DataPlatformProvider.getFactory().runTransaction(() -> {
         TypedQuery<DataSourceUpdateTracker> getter = DataPlatformProvider.getFactory().getEntityManager().createNamedQuery(
@@ -321,10 +322,18 @@ public class DataSourceUpdateTracker {
   public static List<DataSourceUpdateTracker> getAllLatestFinishedTrackers(final DataSource source) {
     try {
       return DataPlatformProvider.getFactory().runTransaction(() -> {
-        TypedQuery<DataSourceUpdateTracker> getter = DataPlatformProvider.getFactory().getEntityManager().createNamedQuery(
-            "DataSourceUpdateTracker.getAllLatestFinished", DataSourceUpdateTracker.class);
-        getter.setParameter("source", source);
-        return getter.getResultList();
+        // Get all unique data source types for this source
+        TypedQuery<String> typeGetter = DataPlatformProvider.getFactory().getEntityManager().createNamedQuery(
+            "DataSourceUpdateTracker.getAllTypes", String.class);
+        typeGetter.setParameter("source", source);
+        List<String> types = typeGetter.getResultList();
+        // Now query for the latest finished value of each type
+        List<DataSourceUpdateTracker> results = new ArrayList<>();
+        for (String nextType : types) {
+          DataSourceUpdateTracker nextTracker = getLatestFinishedTracker(source, nextType);
+          if (nextTracker != null) results.add(nextTracker);
+        }
+        return results;
       });
     } catch (Exception e) {
       log.log(Level.SEVERE, "query error", e);

@@ -169,7 +169,7 @@ public class CmdLineTool {
           if (unfinished != null) System.out.println(unfinished.toString());
         } else if (argv[i].equals("last")) {
           i++;
-          DataSourceUpdateTracker last = DataSourceUpdateTracker.getLatestFinishedTrackers(source, dType);
+          DataSourceUpdateTracker last = DataSourceUpdateTracker.getLatestFinishedTracker(source, dType);
           if (last != null) System.out.println(last.toString());
         } else
           usage();
