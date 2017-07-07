@@ -67,13 +67,10 @@ public class CmdLineTool {
         outTarget = new PrintStream(next.getOutputStream());
         errTarget = outTarget;
         BufferedReader parse = new BufferedReader(new InputStreamReader(next.getInputStream()));
-        String nextLine;
-        while ((nextLine = parse.readLine()) != null) {
-          if (nextLine.equals("exit"))
-            break;
-          processor(nextLine.trim().split("[ ]"));
-          outTarget.println("ok");
-        }
+        String nextLine = parse.readLine();
+        if (nextLine.equals("exit"))
+          break;
+        processor(nextLine.trim().split("[ ]"));
         outTarget = System.out;
         errTarget = System.err;
         next.close();
