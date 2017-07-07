@@ -3,7 +3,15 @@ package enterprises.orbital.evekit.dataplatform;
 import enterprises.orbital.base.OrbitalProperties;
 import enterprises.orbital.evekit.account.ESITokenManager;
 
+import javax.net.ServerSocketFactory;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
+import java.io.PrintStream;
+import java.io.Reader;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.Arrays;
 import java.util.List;
 
@@ -12,12 +20,16 @@ import java.util.List;
  */
 public class CmdLineTool {
 
+  private static PrintStream outTarget = System.out;
+  private static PrintStream errTarget = System.err;
+
   protected static void finish(String msg, boolean stderr, int status) {
     if (stderr)
-      System.err.println(msg);
+      errTarget.println(msg);
     else
-      System.out.println(msg);
-    System.exit(status);
+      outTarget.println(msg);
+    if (outTarget == System.out)
+      System.exit(status);
   }
 
   protected static void usage() {
@@ -45,6 +57,37 @@ public class CmdLineTool {
     // Populate properties
     OrbitalProperties.addPropertyFile("EveKitDataPlatform.properties");
     if (!hasRequiredLength(1, 0, argv)) usage();
+    // Check whether we should run on a socket.  If so, then output and
+    // commands will be ready from the socket instead of the console.
+    if (argv[0].startsWith("-s")) {
+      int port = Integer.parseInt(argv[0].substring("-s".length()));
+      ServerSocket listener = ServerSocketFactory.getDefault().createServerSocket(port);
+      while (true) {
+        Socket next = listener.accept();
+        outTarget = new PrintStream(next.getOutputStream());
+        errTarget = outTarget;
+        BufferedReader parse = new BufferedReader(new InputStreamReader(next.getInputStream()));
+        String nextLine;
+        while ((nextLine = parse.readLine()) != null) {
+          if (nextLine.equals("exit"))
+            break;
+          processor(nextLine.trim().split("[ ]"));
+          outTarget.println("ok");
+        }
+        outTarget = System.out;
+        errTarget = System.err;
+        next.close();
+      }
+    } else {
+      processor(argv);
+    }
+    System.exit(0);
+  }
+
+  public static final void processor(String[] argv) throws IOException {
+    // Populate properties
+    OrbitalProperties.addPropertyFile("EveKitDataPlatform.properties");
+    if (!hasRequiredLength(1, 0, argv)) usage();
     // Process arguments
     for (int i = 0; i < argv.length; i++) {
       if (argv[i].equals("tracker")) {
@@ -56,7 +99,6 @@ public class CmdLineTool {
       } else
         usage();
     }
-    System.exit(0);
   }
 
   protected static boolean hasRequiredLength(int count, int index, String[] args) {
@@ -81,7 +123,7 @@ public class CmdLineTool {
     } else if (argv[i].equals("list")) {
       i++;
       for (DataSource next : DataSource.getAll()) {
-        System.out.println(next.toString());
+        outTarget.println(next.toString());
       }
     } else {
       // First argument must always be the source ID
@@ -166,11 +208,11 @@ public class CmdLineTool {
         if (argv[i].equals("unfinished")) {
           i++;
           DataSourceUpdateTracker unfinished = DataSourceUpdateTracker.getUnfinishedTracker(source, dType);
-          if (unfinished != null) System.out.println(unfinished.toString());
+          if (unfinished != null) outTarget.println(unfinished.toString());
         } else if (argv[i].equals("last")) {
           i++;
           DataSourceUpdateTracker last = DataSourceUpdateTracker.getLatestFinishedTracker(source, dType);
-          if (last != null) System.out.println(last.toString());
+          if (last != null) outTarget.println(last.toString());
         } else
           usage();
       } else if (argv[i].equals("unfinished")) {
@@ -178,7 +220,7 @@ public class CmdLineTool {
         List<DataSourceUpdateTracker> unfinished = DataSourceUpdateTracker.getAllUnfinishedTracker(source);
         if (unfinished != null) {
           for (DataSourceUpdateTracker next : unfinished) {
-            System.out.println(next.toString());
+            outTarget.println(next.toString());
           }
         }
       } else if (argv[i].equals("last")) {
@@ -186,7 +228,7 @@ public class CmdLineTool {
         List<DataSourceUpdateTracker> last = DataSourceUpdateTracker.getAllLatestFinishedTrackers(source);
         if (last != null) {
           for (DataSourceUpdateTracker next : last) {
-            System.out.println(next.toString());
+            outTarget.println(next.toString());
           }
         }
       } else if (argv[i].equals("-t")) {
