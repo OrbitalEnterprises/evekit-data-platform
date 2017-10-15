@@ -10,10 +10,10 @@
             Persistence unit for all DB access
         </description>
 
+        <class>enterprises.orbital.db.DBProperty</class>
         <class>enterprises.orbital.evekit.dataplatform.GeneralSequenceNumber</class>
         <class>enterprises.orbital.evekit.dataplatform.DataPlatformUserAccount</class>
         <class>enterprises.orbital.evekit.dataplatform.DataPlatformUserAuthSource</class>
-        <class>enterprises.orbital.evekit.dataplatform.NewESIToken</class>
         <class>enterprises.orbital.evekit.dataplatform.ESIToken</class>
         <class>enterprises.orbital.evekit.dataplatform.DataSource</class>
         <class>enterprises.orbital.evekit.dataplatform.DataSourceUpdateTracker</class>
