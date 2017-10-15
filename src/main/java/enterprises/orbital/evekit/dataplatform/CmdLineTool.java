@@ -1,15 +1,12 @@
 package enterprises.orbital.evekit.dataplatform;
 
 import enterprises.orbital.base.OrbitalProperties;
-import enterprises.orbital.evekit.account.ESITokenManager;
 
 import javax.net.ServerSocketFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.LineNumberReader;
 import java.io.PrintStream;
-import java.io.Reader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
@@ -35,6 +32,7 @@ public class CmdLineTool {
   protected static void usage() {
     String usageString =
         "Usage: ekdptool -h\n" +
+        "       ekdptool -s <port>\n" +
         "       ekdptool source create <name> <description>\n" +
         "       ekdptool source list\n" +
         "       ekdptool source -s <sid> start [<timestamp>]\n" +

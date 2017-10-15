@@ -2,5 +2,5 @@
 #
 # Run the EveKit Data Platform command line tool
 #
-exec java -jar target/evekit-data-platform-1.0.0-jar-with-dependencies.jar "$@"
+exec java -jar target/evekit-data-platform-4.0.0-jar-with-dependencies.jar "$@"
 

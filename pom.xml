@@ -10,7 +10,7 @@
     </parent>
     <groupId>enterprises.orbital.evekit</groupId>
     <artifactId>data-platform</artifactId>
-    <version>3.1.0</version>
+    <version>4.0.0</version>
     <name>EveKit Data Platform</name>
     <description>Common platform and services for EveKit data retrieval</description>
     <url>https://github.com/OrbitalEnterprises/evekit-data-platform</url>
@@ -22,11 +22,10 @@
     <properties>
         <maven.build.timestamp.format>yyyyMMddHHmmss</maven.build.timestamp.format>
         <enterprises.orbital.evekit.build.timestamp>${maven.build.timestamp}</enterprises.orbital.evekit.build.timestamp>
-        <enterprises.orbital.evekit.dataplatform.db.registry.driver>com.mysql.jdbc.Driver</enterprises.orbital.evekit.dataplatform.db.registry.driver>
-        <enterprises.orbital.evekit.dataplatform.db.registry.dialect>org.hibernate.dialect.MySQLDialect</enterprises.orbital.evekit.dataplatform.db.registry.dialect>
-        <enterprises.orbital.evekit.dataplatform.db.account.driver>com.mysql.jdbc.Driver</enterprises.orbital.evekit.dataplatform.db.account.driver>
-        <enterprises.orbital.evekit.dataplatform.db.account.dialect>org.hibernate.dialect.MySQLDialect</enterprises.orbital.evekit.dataplatform.db.account.dialect>
-        <evekit.version>3.1.0</evekit.version>
+        <enterprises.orbital.evekit.dataplatform.db.driver>com.mysql.jdbc.Driver</enterprises.orbital.evekit.dataplatform.db.driver>
+        <enterprises.orbital.evekit.dataplatform.db.dialect>org.hibernate.dialect.MySQLDialect</enterprises.orbital.evekit.dataplatform.db.dialect>
+        <enterprises.orbital.tokenLimit>50</enterprises.orbital.tokenLimit>
+        <orbital.toolchain.version>2.3.0</orbital.toolchain.version>
         <swagger.version>1.5.7</swagger.version>
         <jackson.core.version>2.4.5</jackson.core.version>
         <hsqldb.version>2.3.3</hsqldb.version>
@@ -35,9 +34,19 @@
     </properties>
     <dependencies>
         <dependency>
-            <groupId>enterprises.orbital.evekit</groupId>
-            <artifactId>account-manager</artifactId>
-            <version>${evekit.version}</version>
+            <groupId>enterprises.orbital</groupId>
+            <artifactId>oauth</artifactId>
+            <version>${orbital.toolchain.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>enterprises.orbital</groupId>
+            <artifactId>db-manager</artifactId>
+            <version>${orbital.toolchain.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.swagger</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>${swagger.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

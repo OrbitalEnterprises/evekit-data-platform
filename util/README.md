@@ -2,7 +2,7 @@ This directory contains files you'll want to copy to the actual
 data source modules you build based on the data platform.
 
 The "resources" directory provides a persistence configuration
-and properties files needed to access EveKit account management
+and properties files needed to access EveKit Data Platform account management
 \(if you require ESI tokens\), as well as the data platform
 management for managing data sources and update trackers.
 
