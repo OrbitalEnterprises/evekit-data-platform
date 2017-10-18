@@ -191,8 +191,11 @@ public class CmdLineTool {
         if (!hasRequiredLength(1, i, argv)) usage();
         String typeInfo = argv[i];
         i++;
-        DataSourceUpdateTracker newTracker = DataSourceUpdateTracker.createTracker(source, typeInfo);
-        if (newTracker == null) finish("Internal error creating new tracker", true, 1);
+	// Always return an existing unfinished tracker if it exists.  This avoids creating multiple
+	// unfinished trackers, which will break the unfinished query.
+	DataSourceUpdateTracker newTracker = DataSourceUpdateTracker.getUnfinishedTracker(source, typeInfo);
+	if (newTracker == null) newTracker = DataSourceUpdateTracker.createTracker(source, typeInfo);
+	if (newTracker == null) finish("Internal error creating new tracker", true, 1);
         finish(String.valueOf(newTracker.getTid()), false, 0);
       } else if (argv[i].equals("-d")) {
         // data source type included in query
@@ -225,7 +228,8 @@ public class CmdLineTool {
           for (DataSourceUpdateTracker next : last) {
             outTarget.println(next.toString());
           }
-        }
+        } else
+	    finish("Error checking for unfinished trackers", true, 1);
       } else if (argv[i].equals("-t")) {
         i++;
         if (!hasRequiredLength(1, i, argv)) usage();
