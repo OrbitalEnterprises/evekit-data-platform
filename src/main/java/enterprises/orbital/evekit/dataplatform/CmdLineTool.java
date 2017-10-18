@@ -32,22 +32,22 @@ public class CmdLineTool {
   protected static void usage() {
     String usageString =
         "Usage: ekdptool -h\n" +
-        "       ekdptool -s <port>\n" +
-        "       ekdptool source create <name> <description>\n" +
-        "       ekdptool source list\n" +
-        "       ekdptool source -s <sid> start [<timestamp>]\n" +
-        "       ekdptool source -s <sid> stop [<timestamp>]\n" +
-        "       ekdptool source -s <sid> enable\n" +
-        "       ekdptool source -s <sid> disable\n" +
-        "       ekdptool source -s <sid> show\n" +
-        "       ekdptool tracker -s <sid> create <type>\n" +
-        "       ekdptool tracker -s <sid> [-d <dtype>] unfinished\n" +
-        "       ekdptool tracker -s <sid> [-d <dtype>] last\n" +
-        "       ekdptool tracker -s <sid> -t <tid> show\n" +
-        "       ekdptool tracker -s <sid> -t <tid> start [<timestamp>]\n" +
-        "       ekdptool tracker -s <sid> -t <tid> end [<timestamp>]\n" +
-        "       ekdptool tracker -s <sid> -t <tid> status <NOT_STARTED|FINISHED|ERROR|OTHER> [msg]\n" +
-        "       ekdptool token -k <kid> refresh -s <seconds>";
+            "       ekdptool -s <port>\n" +
+            "       ekdptool source create <name> <description>\n" +
+            "       ekdptool source list\n" +
+            "       ekdptool source -s <sid> start [<timestamp>]\n" +
+            "       ekdptool source -s <sid> stop [<timestamp>]\n" +
+            "       ekdptool source -s <sid> enable\n" +
+            "       ekdptool source -s <sid> disable\n" +
+            "       ekdptool source -s <sid> show\n" +
+            "       ekdptool tracker -s <sid> create <type>\n" +
+            "       ekdptool tracker -s <sid> [-d <dtype>] unfinished\n" +
+            "       ekdptool tracker -s <sid> [-d <dtype>] last\n" +
+            "       ekdptool tracker -s <sid> -t <tid> show\n" +
+            "       ekdptool tracker -s <sid> -t <tid> start [<timestamp>]\n" +
+            "       ekdptool tracker -s <sid> -t <tid> end [<timestamp>]\n" +
+            "       ekdptool tracker -s <sid> -t <tid> status <NOT_STARTED|FINISHED|ERROR|OTHER> [msg]\n" +
+            "       ekdptool token -k <kid> refresh -s <seconds>";
     finish(usageString, true, 1);
   }
 
@@ -62,16 +62,23 @@ public class CmdLineTool {
       ServerSocket listener = ServerSocketFactory.getDefault().createServerSocket(port);
       while (true) {
         Socket next = listener.accept();
-        outTarget = new PrintStream(next.getOutputStream());
-        errTarget = outTarget;
-        BufferedReader parse = new BufferedReader(new InputStreamReader(next.getInputStream()));
-        String nextLine = parse.readLine();
-        if (nextLine.equals("exit"))
-          break;
-        processor(nextLine.trim().split("[ ]"));
-        outTarget = System.out;
-        errTarget = System.err;
-        next.close();
+        try {
+          outTarget = new PrintStream(next.getOutputStream());
+          errTarget = outTarget;
+          BufferedReader parse = new BufferedReader(new InputStreamReader(next.getInputStream()));
+          String nextLine = parse.readLine();
+          if (nextLine.equals("exit"))
+            break;
+          processor(nextLine.trim()
+                            .split("[ ]"));
+          outTarget = System.out;
+          errTarget = System.err;
+        } catch (Exception e) {
+          System.err.println("Uncaught exception while listening on socket: " + e);
+          System.err.println("Dropping socket and continuing");
+        } finally {
+          next.close();
+        }
       }
     } else {
       processor(argv);
@@ -191,11 +198,11 @@ public class CmdLineTool {
         if (!hasRequiredLength(1, i, argv)) usage();
         String typeInfo = argv[i];
         i++;
-	// Always return an existing unfinished tracker if it exists.  This avoids creating multiple
-	// unfinished trackers, which will break the unfinished query.
-	DataSourceUpdateTracker newTracker = DataSourceUpdateTracker.getUnfinishedTracker(source, typeInfo);
-	if (newTracker == null) newTracker = DataSourceUpdateTracker.createTracker(source, typeInfo);
-	if (newTracker == null) finish("Internal error creating new tracker", true, 1);
+        // Always return an existing unfinished tracker if it exists.  This avoids creating multiple
+        // unfinished trackers, which will break the unfinished query.
+        DataSourceUpdateTracker newTracker = DataSourceUpdateTracker.getUnfinishedTracker(source, typeInfo);
+        if (newTracker == null) newTracker = DataSourceUpdateTracker.createTracker(source, typeInfo);
+        if (newTracker == null) finish("Internal error creating new tracker", true, 1);
         finish(String.valueOf(newTracker.getTid()), false, 0);
       } else if (argv[i].equals("-d")) {
         // data source type included in query
@@ -229,7 +236,7 @@ public class CmdLineTool {
             outTarget.println(next.toString());
           }
         } else
-	    finish("Error checking for unfinished trackers", true, 1);
+          finish("Error checking for unfinished trackers", true, 1);
       } else if (argv[i].equals("-t")) {
         i++;
         if (!hasRequiredLength(1, i, argv)) usage();
@@ -301,7 +308,7 @@ public class CmdLineTool {
                                                OrbitalProperties.getGlobalProperty(
                                                    DataPlatformProvider.PROP_EVE_TOKEN_CLIENT_ID),
                                                OrbitalProperties.getGlobalProperty(
-                                                          DataPlatformProvider.PROP_EVE_TOKEN_SECRET_KEY));
+                                                   DataPlatformProvider.PROP_EVE_TOKEN_SECRET_KEY));
         } catch (IOException e) {
           finish("IO exception while refreshing token: " + e.getStackTrace(), true, 1);
         }
