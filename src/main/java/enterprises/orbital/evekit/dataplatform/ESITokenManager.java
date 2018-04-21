@@ -2,6 +2,7 @@ package enterprises.orbital.evekit.dataplatform;
 
 import com.github.scribejava.core.builder.ServiceBuilder;
 import com.github.scribejava.core.model.OAuth2AccessToken;
+import com.github.scribejava.core.model.OAuth2AccessTokenErrorResponse;
 import com.github.scribejava.core.model.OAuthRequest;
 import com.github.scribejava.core.model.Verb;
 import com.github.scribejava.core.oauth.OAuth20Service;
@@ -13,7 +14,6 @@ import enterprises.orbital.oauth.EVEAuthHandler;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,7 +22,7 @@ import java.util.logging.Logger;
  * Library for creating and maintaining auto-refreshed EVE Swagger Interface (ESI) tokens.
  * These tokens are tied to an orbital OAuth UserAccount.  Once setup, a token can be configured
  * to auto-refresh so that the token is valid just before it is needed.
- *
+ * <p>
  * The process for creating a new key is as follows:
  *
  * <ol>
@@ -33,11 +33,15 @@ import java.util.logging.Logger;
  * </ol>
  */
 public class ESITokenManager {
+  @SuppressWarnings("WeakerAccess")
   public static final String PROP_TOTAL_TOKEN_LIMIT = "enterprises.orbital.tokenLimit";
+  @SuppressWarnings("WeakerAccess")
   public static final int DEF_TOTAL_TOKEN_LIMIT = 50;
-  public static final  String            PROP_TEMP_TOKEN_LIFETIME = "enterprises.orbital.tempTokenLifetime";
-  public static final  long              DEF_TEMP_TOKEN_LIFETIME  = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
-  private static final Logger            log                      = Logger.getLogger(ESITokenManager.class.getName());
+  @SuppressWarnings("WeakerAccess")
+  public static final String PROP_TEMP_TOKEN_LIFETIME = "enterprises.orbital.tempTokenLifetime";
+  @SuppressWarnings("WeakerAccess")
+  public static final long DEF_TEMP_TOKEN_LIFETIME = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
+  private static final Logger log = Logger.getLogger(ESITokenManager.class.getName());
   private static boolean cleanerStarted = false;
 
   public static void init() {
@@ -49,6 +53,9 @@ public class ESITokenManager {
             long now = OrbitalProperties.getCurrentTime();
             NewESIToken.cleanExpired(now);
             Thread.sleep(TimeUnit.MILLISECONDS.convert(5, TimeUnit.MINUTES));
+          } catch (InterruptedException e) {
+            // We've been told to exit, so exit
+            return;
           } catch (Throwable e) {
             // Catch everything but log it
             log.log(Level.WARNING, "caught error in state cleanup loop (ignoring)", e);
@@ -59,34 +66,39 @@ public class ESITokenManager {
     }
   }
 
+  @SuppressWarnings("WeakerAccess")
   public static String createToken(HttpServletRequest req, DataPlatformUserAccount userAccount, String scopes,
                                    String callback, long existing, String eveClientID, String eveSecretKey)
-      throws IOException, URISyntaxException {
+      throws IOException {
     long now = OrbitalProperties.getCurrentTime();
     long expiry = now + OrbitalProperties.getLongGlobalProperty(PROP_TEMP_TOKEN_LIFETIME,
                                                                 DEF_TEMP_TOKEN_LIFETIME);
     // If existing is not -1, then verify the existing key still exists and is owned by the specified user
     if (existing != -1) {
       ESIToken eKey = ESIToken.getKeyByID(existing);
-      if (eKey == null || !eKey.getUserAccount().equals(userAccount)) return null;
+      if (eKey == null || !eKey.getUserAccount()
+                               .equals(userAccount)) return null;
     }
     NewESIToken key = NewESIToken.createKey(userAccount, now, expiry, scopes, existing);
     // Start the OAuth flow to authenticate the listed scopes
     return EVEAuthHandler.doGet(eveClientID, eveSecretKey, callback, scopes, key.getStateKey(), req);
   }
 
+  @SuppressWarnings("WeakerAccess")
   public static boolean processTokenCallback(HttpServletRequest req, String verifyURL, String eveClientID,
                                              String eveSecretKey)
-      throws IOException, URISyntaxException {
+      throws IOException {
     // Extract key information associated with state.  Fail if no key information found.
-    String       stateKey = req.getParameter("state");
+    String stateKey = req.getParameter("state");
     if (stateKey == null) return false;
     NewESIToken keyState = NewESIToken.getKeyByState(stateKey);
     if (keyState == null) return false;
     NewESIToken.deleteKey(keyState.getKid());
 
     // Construct the service to use for verification.
-    OAuth20Service service = new ServiceBuilder().apiKey(eveClientID).apiSecret(eveSecretKey).build(EVEApi.instance());
+    OAuth20Service service = new ServiceBuilder().apiKey(eveClientID)
+                                                 .apiSecret(eveSecretKey)
+                                                 .build(EVEApi.instance());
 
     // Exchange for access token
     OAuth2AccessToken accessToken = service.getAccessToken(req.getParameter("code"));
@@ -97,13 +109,16 @@ public class ESITokenManager {
     com.github.scribejava.core.model.Response response = request.send();
     if (!response.isSuccessful()) throw new IOException("credential request was not successful!");
     String charName = (new Gson()).fromJson(
-        (new JsonParser()).parse(response.getBody()).getAsJsonObject().get("CharacterName"), String.class);
+        (new JsonParser()).parse(response.getBody())
+                          .getAsJsonObject()
+                          .get("CharacterName"), String.class);
 
     ESIToken update;
     if (keyState.getExistingKid() != -1) {
       // Re-authenticate an existing token
       update = ESIToken.getKeyByID(keyState.getExistingKid());
-      if (update == null || !update.getUserAccount().equals(keyState.getUserAccount())) return false;
+      if (update == null || !update.getUserAccount()
+                                   .equals(keyState.getUserAccount())) return false;
     } else {
       // Create the new token.
       update = ESIToken.createKey(keyState.getUserAccount(), keyState.getScopes(), charName);
@@ -118,6 +133,7 @@ public class ESITokenManager {
     return true;
   }
 
+  @SuppressWarnings("WeakerAccess")
   public static String refreshToken(long kid, long expiryWindow, String eveClientID, String eveSecretKey)
       throws IOException {
     // Find token
@@ -127,14 +143,27 @@ public class ESITokenManager {
     if (key.getAccessTokenExpiry() - OrbitalProperties.getCurrentTime() < expiryWindow) {
       // Key within expiry window, refresh
       String refreshToken = key.getRefreshToken();
-      if (refreshToken == null) throw new IOException("No valid refresh token for key: " + kid);
-      OAuth2AccessToken newToken     = EVEAuthHandler.doRefresh(eveClientID, eveSecretKey, refreshToken);
-      if (newToken == null) {
-        // Invalidate refresh token
-        key.setRefreshToken(null);
-        ESIToken.update(key);
-        throw new IOException("Failed to refresh token for key: " + kid);
+      if (refreshToken == null || refreshToken.trim()
+                                              .isEmpty())
+        throw new IOException("No valid refresh token for key: " + kid);
+      OAuth2AccessToken newToken;
+
+      try {
+        newToken = EVEAuthHandler.doRefresh(eveClientID, eveSecretKey, refreshToken);
+      } catch (Exception e) {
+        // Might be revoked, in which case we'll need re-authorization
+        if (e instanceof OAuth2AccessTokenErrorResponse &&
+            ((OAuth2AccessTokenErrorResponse) e).getErrorCode() == OAuth2AccessTokenErrorResponse.ErrorCode.invalid_grant) {
+          // Token revoked or otherwise invalid, clear it in our storage
+          key.setRefreshToken(null);
+          ESIToken.update(key);
+          throw new IOException("Refresh token revoked for key: " + kid);
+        }
+        // Anything else we treat as SSO being down.  We'll save the token to try again later.
+        log.log(Level.WARNING, "Error refreshing token for key: " + kid, e);
+        throw new IOException("Error refreshing token for key: " + kid);
       }
+
       key.setAccessToken(newToken.getAccessToken());
       key.setAccessTokenExpiry(OrbitalProperties.getCurrentTime() +
                                    TimeUnit.MILLISECONDS.convert(newToken.getExpiresIn(), TimeUnit.SECONDS));

@@ -43,8 +43,10 @@ import java.util.logging.Logger;
             unique = true),
         @Index(
             name = "finishedIndex",
-            columnList = "tid, sid, dataSourceType, trackerEnd",
-            unique = false)
+            columnList = "tid, sid, dataSourceType, trackerEnd"),
+        @Index(
+            name = "dataSourceTypeIndex",
+            columnList = "dataSourceType")
     })
 @NamedQueries({
     @NamedQuery(
