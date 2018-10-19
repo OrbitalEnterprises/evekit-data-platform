@@ -27,7 +27,7 @@
         <enterprises.orbital.tokenLimit>50</enterprises.orbital.tokenLimit>
         <orbital.toolchain.version>2.3.0</orbital.toolchain.version>
         <swagger.version>1.5.7</swagger.version>
-        <jackson.core.version>2.4.5</jackson.core.version>
+        <jackson.core.version>2.9.7</jackson.core.version>
         <hsqldb.version>2.3.3</hsqldb.version>
         <mysql.connector.version>5.1.38</mysql.connector.version>
         <log4j.version>1.2.17</log4j.version>
